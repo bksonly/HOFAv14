@@ -52,9 +52,9 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(const Quatf &q) const
+matrix::Vector3f AttitudeControl::update(const Quatf &q)
 {
-	q.normalize();
+
 
 	const float dt_setRd = math::constrain(((_current_setRd_timestamp - _previous_setRd_timestamp) * 1e-6f), 0.000125f, 0.02f);//其实根本不知道上层更新频率，大概就这样罢，这个dt实质上也不是两个R的更新间隔，只是这一层的读取间隔，干脆也作为角速度的更新间隔
 
@@ -83,13 +83,16 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
     qd = -qd; // 取反四元数，保证正负一致性
 	}
 
-	Quatf Q_wd = 2 * qd.inversed() * (qd - pre_qd) / dt_setRd;
+
+	Quatf Q_wd = qd.inversed() * (qd - pre_qd) / dt_setRd * 2.0f;
 	Vector3f rate_setpoint = Q_wd.imag();
 
-	if (pre_q.dot(q) < 0) {
-    q = -q; // 取反四元数，保证正负一致性
+	if (_pre_q.dot(q) < 0) {
+    _pre_q = -_pre_q; // 取反四元数，保证正负一致性
 	}
-	Quatf Q_w = 2 * q.inversed() * (q - pre_q) / dt_updateR;
+	
+
+	Quatf Q_w = q.inversed() * (q - _pre_q) / dt_updateR * 2.0f;
 	Vector3f w = Q_w.imag();
 
 	for (int i = 0; i < 3; i++) {
