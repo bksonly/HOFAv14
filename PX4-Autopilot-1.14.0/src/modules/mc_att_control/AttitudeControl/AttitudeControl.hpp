@@ -79,12 +79,12 @@ public:
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 */
-	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint)
+	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint, const hrt_abstime &t)
 	{
 		_previous_attitude_setpoint_q = _attitude_setpoint_q;
 
 		_previous_setRd_timestamp = _current_setRd_timestamp; 
-        _current_setRd_timestamp = hrt_absolute_time(); // Update the current timestamp 1000000us=1s
+        _current_setRd_timestamp = t; // Update the current timestamp 1000000us=1s 更精确
         
 		_attitude_setpoint_q = qd;
 		_attitude_setpoint_q.normalize();
@@ -107,7 +107,7 @@ public:
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
 	 */
-	matrix::Vector3f update(const matrix::Quatf &q);
+	matrix::Vector3f update(const matrix::Quatf &q, const matrix::Vector3f &rates, const matrix::Vector3f &angular_accel, const float dt_R);
 
 private:
 	matrix::Vector3f _proportional_gain;

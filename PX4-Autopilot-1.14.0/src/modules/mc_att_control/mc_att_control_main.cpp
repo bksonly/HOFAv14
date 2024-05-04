@@ -76,6 +76,12 @@ MulticopterAttitudeControl::init()
 		PX4_ERR("callback registration failed");
 		return false;
 	}
+	
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}//加
+
 
 	return true;
 }
@@ -184,7 +190,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
 	// update attitude controller setpoint immediately
-	_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate);
+	_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate, attitude_setpoint.timestamp);//加入时刻
 	_thrust_setpoint_body = Vector3f(attitude_setpoint.thrust_body);
 	_last_attitude_setpoint = attitude_setpoint.timestamp;
 }
@@ -197,6 +203,12 @@ MulticopterAttitudeControl::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}//加
 
 	perf_begin(_loop_perf);
 
@@ -212,6 +224,7 @@ MulticopterAttitudeControl::Run()
 
 	// run controller on attitude updates
 	vehicle_attitude_s v_att;
+	vehicle_angular_velocity_s angular_velocity;
 
 	if (_vehicle_attitude_sub.update(&v_att)) {
 
@@ -221,6 +234,17 @@ MulticopterAttitudeControl::Run()
 
 		const Quatf q{v_att.q};
 
+	if (_vehicle_angular_velocity_sub.updated()){
+		_vehicle_angular_velocity_sub.copy(&angular_velocity)
+	}//传进来就更新，不然沿用之前的值
+
+	const Vector3f rates{angular_velocity.xyz};
+	const Vector3f angular_accel{angular_velocity.xyz_derivative};
+	//加
+
+
+
+
 		// Check for new attitude setpoint
 		if (_vehicle_attitude_setpoint_sub.updated()) {
 			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
@@ -228,7 +252,7 @@ MulticopterAttitudeControl::Run()
 			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
 			    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
 
-				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate, vehicle_attitude_setpoint.timestamp);//加入时刻
 				_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
 			}
@@ -298,7 +322,7 @@ MulticopterAttitudeControl::Run()
 				_man_pitch_input_filter.reset(0.f);
 			}
 
-			Vector3f rates_sp = _attitude_control.update(q);
+			Vector3f rates_sp = _attitude_control.update(q,rates,angular_accel,dt);//dt是两个R的间隔
 
 			const hrt_abstime now = hrt_absolute_time();
 			autotune_attitude_control_status_s pid_autotune;

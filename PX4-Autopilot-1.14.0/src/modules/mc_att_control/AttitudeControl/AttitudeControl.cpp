@@ -52,19 +52,21 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(const Quatf &q)
+matrix::Vector3f AttitudeControl::update(const Quatf &q, const matrix::Vector3f &rates, const matrix::Vector3f &angular_accel, const float dt_R)
 {
 
+	
+	const float dt_setRd = math::constrain(((_current_setRd_timestamp - _previous_setRd_timestamp) * 1e-6f), 0.000125f, 0.02f);//其实根本不知道上层更新频率，大概就这样罢，这个dt实质上也不是两个R的更新间隔，只是这一层的读取间隔，干脆也作为角速度的更新间隔 改后 这下精确了 和Rd同时产生的
 
-	const float dt_setRd = math::constrain(((_current_setRd_timestamp - _previous_setRd_timestamp) * 1e-6f), 0.000125f, 0.02f);//其实根本不知道上层更新频率，大概就这样罢，这个dt实质上也不是两个R的更新间隔，只是这一层的读取间隔，干脆也作为角速度的更新间隔
-
-	_previous_updateR_timestamp = _current_updateR_timestamp;
-	_current_updateR_timestamp = hrt_absolute_time(); // Update the current timestamp 1000000us=1s
+	//_previous_updateR_timestamp = _current_updateR_timestamp;
+	//_current_updateR_timestamp = hrt_absolute_time(); // Update the current timestamp 1000000us=1s
 
 	Quatf qd = _attitude_setpoint_q;
 	Quatf pre_qd = _previous_attitude_setpoint_q;
 
-	const float dt_updateR = math::constrain(((_current_updateR_timestamp -       _previous_updateR_timestamp) * 1e-6f), 0.000125f, 0.02f);
+	//const float dt_updateR = math::constrain(((_current_updateR_timestamp -       _previous_updateR_timestamp) * 1e-6f), 0.000125f, 0.02f);
+
+	const float dt_updateR = dt_R;//精确的，限幅在mc_att_control_main里
 
 	Dcmf Rd(qd);
 	Dcmf R(q);
@@ -92,8 +94,10 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q)
 	}
 	
 
-	Quatf Q_w = q.inversed() * (q - _pre_q) / dt_updateR * 2.0f;
-	Vector3f w = Q_w.imag();
+	//Quatf Q_w = q.inversed() * (q - _pre_q) / dt_updateR * 2.0f;
+	//Vector3f w = Q_w.imag();
+
+	Vector3f w = rates;
 
 	for (int i = 0; i < 3; i++) {
 		rate_setpoint(i) = math::constrain(rate_setpoint(i), -_rate_limit(i), _rate_limit(i));

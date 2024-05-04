@@ -55,6 +55,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
+#include <uORB/topics/vehicle_angular_velocity.h>//猜测vehicle_angular_velocity_s这个类型在这里
+
 #include <AttitudeControl.hpp>
 
 using namespace time_literals;
@@ -104,6 +106,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};//加
 
 	uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_attitude_setpoint_s>  _vehicle_attitude_setpoint_pub;
