@@ -235,7 +235,7 @@ MulticopterAttitudeControl::Run()
 		const Quatf q{v_att.q};
 
 	if (_vehicle_angular_velocity_sub.updated()){
-		_vehicle_angular_velocity_sub.copy(&angular_velocity)
+		_vehicle_angular_velocity_sub.copy(&angular_velocity);
 	}//传进来就更新，不然沿用之前的值
 
 	const Vector3f rates{angular_velocity.xyz};
