@@ -78,8 +78,10 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	J(1,1) = 0.0025;
 	J(2,2) = 0.0041;
 
-	const Vector3f torque = rate.cross(J*rate) + rate_sp;
-
+	Vector3f torque = rate.cross(J*rate) + rate_sp;
+	torque(0) = math::constrain(torque(0), -0.1f, 0.1f);
+	torque(1) = math::constrain(torque(1), -0.1f, 0.1f);
+	torque(2) = math::constrain(torque(2), -0.04f, 0.04f);
 
 /* 	// angular rates error
 	Vector3f rate_error = rate_sp - rate;

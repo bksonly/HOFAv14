@@ -113,7 +113,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q, const matrix::Vector3f 
 	_pre_rate_setpoint = rate_setpoint;
 
 	for (int i = 0; i < 3; i++) {
-		ad(i) = math::constrain(ad(i), -1000.f, 1000.f);
+		ad(i) = math::constrain(ad(i), -10.f, 10.f);
 	}
 
 	Dcmf W=w.hat();
@@ -146,6 +146,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q, const matrix::Vector3f 
 	J(2,2) = 0.0041;
 
 	SquareMatrix<float, 3> B;
+	SquareMatrix<float, 3> invB;
 	B = RB * J.I();
 
 	Vector3f M_star;
@@ -160,10 +161,16 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q, const matrix::Vector3f 
 	M_star = -Ke * e -Kde * de;
 
 	Vector3f M;
-	M = -B.I() * Ad + B.I() * M_star;
 
+	bool is_invertible = matrix::inv(B, invB);
 
-
+    if (is_invertible) {
+        	M = -invB * Ad + invB * M_star;
+    } else {
+		M(0)=0;
+		M(1)=0;
+		M(2)=0;
+    }
 	//return rate_setpoint;
 	return M;//只能通过这个通道了，wxJw还没加上
 }
